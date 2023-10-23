@@ -5,7 +5,9 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 
 from db import db
-import models
+from models.job import JobModel
+from models.hiredEmployee import HiredEmployeeModel
+from models.department import DepartmentModel
 
 
 UPLOAD_FOLDER = 'uploads'
@@ -19,7 +21,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db.init_app(app)
 
+
 with app.app_context():
+    db.drop_all()
     db.create_all()
 
 # creating a function that verifies the extensions to upload
@@ -40,15 +44,67 @@ def index ():
 
 @app.route('/upload', methods=['POST'])
 def upload_csv():
+    # Saving data in temporary folder
     if 'file' in request.files:
         uploaded_file = request.files['file']
         filename = secure_filename(uploaded_file.filename)
-        uploaded_file.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename))
-        data = pd.read_csv(uploaded_file)
-        data.to_csv('uploaded')
-    return 'CSV file uploaded'
-
+        uploaded_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        csv_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        data = pd.read_csv(csv_file_path)
+        
     
+    # saving or data in the data base
+        if uploaded_file.filename == 'jobs.csv':
+            for index, row in data.iterrows():
+                nueva_fila = JobModel(
+                    id=row[0], 
+                    job=row[1])
+                db.session.add(nueva_fila)
+                
+        elif uploaded_file.filename == 'departments.csv':
+            for index, row in data.iterrows():
+                nueva_fila = DepartmentModel(
+                    id=row[0], 
+                    department=row[1])
+                db.session.add(nueva_fila)
+                
+        else:
+            columns = ['id', 'name', 'datetime', 'department_id', 'job_id']
+            
+            data = data.fillna(0)
+            for index, row in data.iterrows():
+                nueva_fila = HiredEmployeeModel(
+                    id=row[0], 
+                    name=row[1],
+                    datetime=row[2],
+                    department_id=row[3],
+                    job_id=row[4])
+                db.session.add(nueva_fila)
+        db.session.commit()
+        
+        return f'uploaded {uploaded_file.filename}'
+    return 'CSV file uploaded'
+         
+        
+        
+'''  
+uploaded_file = request.files['file']
+    if uploaded_file.filename == 'jobs.csv':
+        jobs = JobModel(filename=uploaded_file.filename, data=uploaded_file.read())
+        db.session.add(jobs)
+    elif uploaded_file.filename == 'departments.csv':
+        deparment = DepartmentModel(filename=uploaded_file.filename, data=uploaded_file.read())
+        db.session.add(deparment)
+    else:
+        hired_employee = HiredEmployeeModel(filename=uploaded_file.filename, data=uploaded_file.read())
+        db.session.add(hired_employee)
+    db.session.commit()
+    return f'CSV file uploaded:'
+    
+    
+
+'''
 # Creating a route and method to instert the batch transactions
 
 @app.route('/insert_batch_trxs', methods=['POST'])
