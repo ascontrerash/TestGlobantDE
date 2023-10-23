@@ -1,6 +1,9 @@
 import os
 
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, jsonify
+from flask import redirect, url_for, flash
+from sqlalchemy import text
+
 from werkzeug.utils import secure_filename
 import pandas as pd
 
@@ -23,7 +26,6 @@ db.init_app(app)
 
 
 with app.app_context():
-    db.drop_all()
     db.create_all()
 
 # creating a function that verifies the extensions to upload
@@ -51,7 +53,7 @@ def upload_csv():
         uploaded_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
         csv_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        data = pd.read_csv(csv_file_path)
+        data = pd.read_csv(csv_file_path, header=None)
         
     
     # saving or data in the data base
@@ -70,8 +72,6 @@ def upload_csv():
                 db.session.add(nueva_fila)
                 
         else:
-            columns = ['id', 'name', 'datetime', 'department_id', 'job_id']
-            
             data = data.fillna(0)
             for index, row in data.iterrows():
                 nueva_fila = HiredEmployeeModel(
@@ -85,26 +85,96 @@ def upload_csv():
         
         return f'uploaded {uploaded_file.filename}'
     return 'CSV file uploaded'
-         
-        
-        
-'''  
-uploaded_file = request.files['file']
-    if uploaded_file.filename == 'jobs.csv':
-        jobs = JobModel(filename=uploaded_file.filename, data=uploaded_file.read())
-        db.session.add(jobs)
-    elif uploaded_file.filename == 'departments.csv':
-        deparment = DepartmentModel(filename=uploaded_file.filename, data=uploaded_file.read())
-        db.session.add(deparment)
-    else:
-        hired_employee = HiredEmployeeModel(filename=uploaded_file.filename, data=uploaded_file.read())
-        db.session.add(hired_employee)
-    db.session.commit()
-    return f'CSV file uploaded:'
     
-    
+# Creating endpoint to the metrics
 
-'''
+# Metric 1 : 
+# Number of employees hired for each job and department in 2021 divided by quarter. 
+# The table must be ordered alphabetically by department and job.
+
+@app.route('/query_metric1', methods=['GET'])
+def query_metric1():
+    try:
+        # Executing SQL query
+        consulta_sql = text("""
+        SELECT
+            d.department AS department,
+            j.job AS job,
+            SUM(CASE WHEN strftime('%m', e.datetime) BETWEEN '01' AND '03' THEN 1 ELSE 0 END) AS q1,
+            SUM(CASE WHEN strftime('%m', e.datetime) BETWEEN '04' AND '06' THEN 1 ELSE 0 END) AS q2,
+            SUM(CASE WHEN strftime('%m', e.datetime) BETWEEN '07' AND '09' THEN 1 ELSE 0 END) AS q3,
+            SUM(CASE WHEN strftime('%m', e.datetime) BETWEEN '10' AND '12' THEN 1 ELSE 0 END) AS q4
+
+        FROM
+        hired_employees e
+        JOIN departments d ON e.department_id = d.id
+        JOIN jobs j ON e.job_id = j.id
+        WHERE
+          substr(e.datetime, 0,5) = '2021'
+        GROUP BY
+          department, job
+        ORDER BY
+          department, job""")
+        result = db.session.execute(consulta_sql)
+
+        # Converting result in a dictionary
+        data = [{'department': row.department, 
+                  'job': row.job, 
+                  'Q1': row.q1,
+                  'Q2': row.q2,
+                  'Q3': row.q3,
+                  'Q4': row.q4
+                } 
+                for row in result]
+
+        # Respond with data as JSON
+        return jsonify(data)
+
+    except Exception as e:
+        return str(e), 500  # Exception handling
+         
+# Metric 2 : 
+# List of ids, name and number of employees hired of each department that hired more
+#employees than the mean of employees hired in 2021 for all the departments, ordered
+#by the number of employees hired (descending)
+
+@app.route('/query_metric2', methods=['GET'])
+def query_metric2():
+    try:
+        # Executing SQL query
+        
+        consulta_sql = text("""
+        SELECT
+            d.id AS department_id,
+            d.department AS department,
+            COUNT(e.id) AS hired
+        FROM
+        departments d
+        JOIN hired_employees e ON d.id = e.department_id
+        WHERE substr(e.datetime, 0,5) = '2021' 
+        GROUP BY
+          d.id, d.department
+        HAVING
+          COUNT(e.id) > (SELECT AVG(employee_count) FROM (SELECT COUNT(*) AS employee_count FROM hired_employees WHERE substr(datetime, 0,5) = '2021' GROUP BY department_id) subquery)
+        ORDER BY
+          hired DESC;
+        """)
+        result = db.session.execute(consulta_sql)
+
+        # Converting result in a dictionary
+        data = [{'id': row.department_id,
+                 'department': row.department,
+                 'hired': row.hired
+                } 
+                for row in result]
+
+        # Respond with data as JSON
+        return jsonify(data)
+
+    except Exception as e:
+        return str(e), 500  # Exception handling         
+         
+         
 # Creating a route and method to instert the batch transactions
 
 @app.route('/insert_batch_trxs', methods=['POST'])
