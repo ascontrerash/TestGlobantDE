@@ -85,6 +85,21 @@ def upload_csv():
         
         return f'uploaded {uploaded_file.filename}'
     return 'CSV file uploaded'
+
+# Creating a route and method to instert the batch transactions
+
+@app.route('/insert_batch_trxs', methods=['POST'])
+def insert_batch_trxs():
+    try:
+        data = request.json
+        if data:
+            # Lets process and load the rows here
+            return 'Batch transactions inserted successfully'
+        else:
+            return 'Invalidad data in the request', 400
+    except Exception as e:
+        return 'Error in the request: ' + str(e), 500
+
     
 # Creating endpoint to the metrics
 
@@ -172,20 +187,4 @@ def query_metric2():
         return jsonify(data)
 
     except Exception as e:
-        return str(e), 500  # Exception handling         
-         
-         
-# Creating a route and method to instert the batch transactions
-
-@app.route('/insert_batch_trxs', methods=['POST'])
-def insert_batch_trxs():
-    try:
-        data = request.json
-        if data:
-            # Lets process and load the rows here
-            return 'Batch transactions inserted successfully'
-        else:
-            return 'Invalidad data in the request', 400
-    except Exception as e:
-        return 'Error in the request: ' + str(e), 500
-    
+        return str(e), 500  # Exception handling    
