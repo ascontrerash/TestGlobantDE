@@ -7,6 +7,7 @@ There was implemented the API with flask and python, we used SQL Alchemy for the
 We used the next Data Model:
 ![Data Model](ERD.JPG)
 
+
 We defined 3 routes for this section:
 + '/' is our index and it should be used to upload the csv to the data migration
 + '/upload' that give us the information of the file that was uploaded\
