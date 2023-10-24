@@ -93,6 +93,16 @@ def insert_batch_trxs():
     try:
         data = request.json
         if data:
+            for item in data:
+                nueva_fila = HiredEmployeeModel(
+                    id=item[0], 
+                    name=item[1],
+                    datetime=item[2],
+                    department_id=item[3],
+                    job_id=item[4])
+                db.session.add(nueva_fila)
+
+            db.session.commit()
             # Lets process and load the rows here
             return 'Batch transactions inserted successfully'
         else:
