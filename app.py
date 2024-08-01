@@ -86,29 +86,26 @@ def upload_csv():
         return f'uploaded {uploaded_file.filename}'
     return 'CSV file uploaded'
 
-# Creating a route and method to instert the batch transactions
+# Creating a route and method to instert the batch transactions to HiredEmploye table
 
-@app.route('/insert_batch_trxs', methods=['POST'])
-def insert_batch_trxs():
+@app.route('/insert_batch', methods=['POST'])
+def insert_batch():
     try:
-        data = request.json
+        data = request.get_json()
         if data:
-            for item in data:
-                nueva_fila = HiredEmployeeModel(
-                    id=item[0], 
-                    name=item[1],
-                    datetime=item[2],
-                    department_id=item[3],
-                    job_id=item[4])
-                db.session.add(nueva_fila)
+            
+            if len(data) > 1000:
+                return jsonify({"error": "The number of rows is bigger than 1000"}), 400
 
+            db.session.bulk_insert_mappings(HiredEmployeeModel, data)
             db.session.commit()
             # Lets process and load the rows here
-            return 'Batch transactions inserted successfully'
+            return jsonify({"message": "'Batch transactions inserted successfully'"}), 201
+        
         else:
-            return 'Invalidad data in the request', 400
+            return jsonify({"error": "'Invalidad data in the request'"}), 400
     except Exception as e:
-        return 'Error in the request: ' + str(e), 500
+        return jsonify({"error": str(e)}), 500
 
     
 # Creating endpoint to the metrics
@@ -132,8 +129,8 @@ def query_metric1():
 
         FROM
         hired_employees e
-        JOIN departments d ON e.department_id = d.id
-        JOIN jobs j ON e.job_id = j.id
+        INNER JOIN departments d ON e.department_id = d.id
+        INNER JOIN jobs j ON e.job_id = j.id
         WHERE
           substr(e.datetime, 0,5) = '2021'
         GROUP BY
@@ -153,7 +150,10 @@ def query_metric1():
                 for row in result]
 
         # Respond with data as JSON
-        return jsonify(data)
+        response = jsonify(data)
+        response.headers.add('Content-Type', 'application/json; charset=utf-8')
+        
+        return response
 
     except Exception as e:
         return str(e), 500  # Exception handling
@@ -175,7 +175,7 @@ def query_metric2():
             COUNT(e.id) AS hired
         FROM
         departments d
-        JOIN hired_employees e ON d.id = e.department_id
+        INNER JOIN hired_employees e ON d.id = e.department_id
         WHERE substr(e.datetime, 0,5) = '2021' 
         GROUP BY
           d.id, d.department
@@ -194,7 +194,10 @@ def query_metric2():
                 for row in result]
 
         # Respond with data as JSON
-        return jsonify(data)
+        response = jsonify(data)
+        response.headers.add('Content-Type', 'application/json; charset=utf-8')
+        
+        return response
 
     except Exception as e:
         return str(e), 500  # Exception handling    
