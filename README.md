@@ -10,8 +10,8 @@ We used the next Data Model:
 
 We defined 3 routes for this section:
 + '/' is our index and it should be used to upload the csv to the data migration
-+ '/upload' that give us the information of the file that was uploaded\
-+ '/insert_batch_trxs' to send the batch transactions (this method should be programmed better)
++ '/upload' that give us the information of the file that was uploaded
++ '/insert_batch_trxs' to send the batch transactions to the hired employee table
 
 ## Section 2
 This section was performed in Sqlite3, and the funtions that it give us (in the future an improvement should be use a more robust DBMS to use better methods), there were two methods and routes that provides the endpoint for querying the metrics, in this methods we dipose the data as a json.
