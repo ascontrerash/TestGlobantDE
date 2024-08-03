@@ -32,3 +32,18 @@ by the number of employees hired (descending).
 ### Docker Implementation
 We have implement a Docker image, you need to initiate the docker engine with Docker Desktop 
 and in the root folder initiate a terminal en run the command docker-compose up to run the app
+
+### Test Implementation
+We have implement a single test to the '/insert_batch' that checks if more than 1000 rows are traing to be inserted
+As a future enhance of the API we should Implement more test: correct data insertion, correct format inserted, ... etc
+
+### Cloud Hosting
+A simple diagram of how we can implement the hosting of this API in the Cloud Service Microsoft Azure, we can host the API en 
+App Service uploading the code from Azure DevOps or GitHub, implement teh Key Vault for the connection strings an access and store 
+or tables and files in SQl Database or Blob Storage depending the case
+![Azure Diagram](AzureCloudDiagram.jpg)
+
+### Future Upgrades
++ Enhance the folder and files structure of the project
++ Implement more test for the different methods
++ Implement the cloud hosting in Azure (prepare the code, configure the services...etc)
